@@ -1,6 +1,7 @@
 # $language = "python"
 # $interface = "1.0"
 
+# encoding=utf8
 # AddCommentToLog.py
 #
 # Description:
@@ -24,20 +25,20 @@
 #   - How to use the Python file object to open an existing text file
 #     and append data.
 #
+import sys
+sys.path.append('D:/works/secureCRT_python')
 
 import os
-import datetime
-from sys import version_info
+import tester
 
-scriptname = os.path.basename(__file__)
-basedir = os.path.abspath("")
-daystr = datetime.datetime.now().strftime('%Y%m%d')
-datetimestr = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
-mystr = str(version_info.major) + "." + str(version_info.minor)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def Main():
-	# Make this script tab safe
-	tab = crt.GetScriptTab()
-        crt.Dialog.MessageBox( scriptname + " is running on dir " + basedir + "\n today is " + daystr + " and log file name is " + scriptname + "-" + datetimestr)
-        crt.Dialog.MessageBox(mystr + " world!")
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+    # Make this script tab safe
+    tab = crt.GetScriptTab()
+    f = tester.test_a
+    str = f()
+    crt.Dialog.MessageBox(str)
+
 Main()
