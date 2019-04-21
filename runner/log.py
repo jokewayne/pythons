@@ -1,4 +1,4 @@
-
+# encoding = utf8
 
 def WriteToFile(filename, data):
 	# filename: Full path to file
