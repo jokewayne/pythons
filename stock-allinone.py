@@ -8,8 +8,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import StratifiedShuffleSplit
 import shutil
 
+#ratelow, 如果highprice> lowprice*ratehigh，且当前价又小于lowprice*ratelow，就卖。
+
+ratehigh = 1.2
+ratelow = 1.1
+
+stocksinfo="stocksinfo/"
 dict = {}
-stockfile = open("stock-totalprice.txt","a")
+stockfile = open(stocksinfo+"stock-totalprice.txt","a")
+#stockfile_earnprice = open(stocksinfo+"earnprice.txt","a")
 
 def load_stock_data(stock_path="", filename="stock.csv"):
     csv_path = os.path.join(stock_path, filename)
@@ -43,9 +50,9 @@ def gettotalprice(stock_path="", filename="stock.csv", jpg_path="jpg", jpgfilena
     print("csvtojpg end")
     del x
 
-def walkdir(in_path="csv", out_path="jpg"):
+def walkdir_gettotalprice(in_path="csv", out_path="jpg"):
     global stockfile
-    print("inside walkdir")
+    print("inside walkdir_gettotalprice")
     for root,dirs,files in os.walk(in_path):
         print("inside ",in_path)
         print("root ", root)
@@ -63,6 +70,114 @@ def walkdir(in_path="csv", out_path="jpg"):
             gettotalprice(in_path, file, out_path, filename)
     stockfile.close()
 
+def getearnprice(stock_path="", filename="stock.csv"):
+    #global stockfile_earnprice
+    print("getearnprice start")
+    x= test_stockinfo(stock_path, filename)
+    # now x is one stock daily prices info
+    # let's get some info out of it.
+    lowprice = x.iloc[0]['close']
+    highprice = lowprice
+    earnprice = 0
+    for i in range(0,len(x)):
+        cur = x.iloc[i]['close']
+        if ( cur > highprice ):
+            highprice = cur
+            continue
+        elif ( cur < lowprice * ratelow ) and ( highprice > lowprice * ratehigh ):
+            count += 1
+            earnprice = earnprice + highprice - lowprice
+            lowprice = cur
+            highprice = cur
+        elif ( cur < lowprice ):
+            lowprice = cur
+            highprice = cur
+        else:
+            continue
+    dailyearn = earnprice / len(x)
+    meanprice = x.loc[:,"close"].mean()
+    earnrate = dailyearn / meanprice
+    print("earnrate:",earnrate)
+    (filenamenoext,extension) = os.path.splitext(filename)
+    writestr = filenamenoext + ", " + str(earnrate) + "\n"
+    stockfile_earnprice = open(stocksinfo+"earnprice.txt","a")
+    stockfile_earnprice.write(writestr)
+    stockfile_earnprice.close()
+    del x
+    
+
+def walkdir_getearnprice(in_path="csv"):
+    global stockfile_earnprice
+    print("inside walkdir_get earn price")
+    for root,dirs,files in os.walk(in_path):
+        print("inside ",in_path)
+        print("root ", root)
+        print("dirs ", dirs)
+        print("files ", files)
+        for file in files:
+            #获取文件所属目录
+            print("file:",file)
+            #获取文件路径
+            finname = os.path.join(root,file)
+            (filename,extension) = os.path.splitext(file)
+            getearnprice(in_path, file)
+
+
+def getearntimes(stock_path="", filename="stock.csv"):
+    #global stockfile_earnprice
+    print("getearnprice start")
+    x= test_stockinfo(stock_path, filename)
+    # now x is one stock daily prices info
+    # let's get some info out of it.
+    lowprice = x.iloc[0]['close']
+    highprice = lowprice
+    earnprice = 0
+    count = 0
+    for i in range(0,len(x)):
+        cur = x.iloc[i]['close']
+        if ( cur > highprice ):
+            highprice = cur
+            continue
+        elif ( cur < lowprice * ratelow ) and ( highprice > lowprice * ratehigh ):
+            count += 1
+            earnprice = earnprice + highprice - lowprice
+            lowprice = cur
+            highprice = cur
+        elif ( cur < lowprice ):
+            lowprice = cur
+            highprice = cur
+        else:
+            continue
+    dailyearn = earnprice / len(x)
+    meanprice = x.loc[:,"close"].mean()
+    earnrate = dailyearn / meanprice
+    (filenamenoext,extension) = os.path.splitext(filename)
+    writestr = filenamenoext + ", " + str(earnrate) + "\n"
+    timesstr = filenamenoext + ", " + str(count) + "\n"
+    stockfile_earnprice = open(stocksinfo+"earnprice.txt","a")
+    stockfile_earnprice.write(writestr)
+    stockfile_earnprice.close()
+    stockfile_earnprice = open(stocksinfo+"earntimes.txt","a")
+    stockfile_earnprice.write(timesstr)
+    stockfile_earnprice.close()
+    del x
+    
+
+def walkdir_getearntimes(in_path="csv"):
+    global stockfile_earnprice
+    print("inside walkdir_get earn price")
+    for root,dirs,files in os.walk(in_path):
+        print("inside ",in_path)
+        print("root ", root)
+        print("dirs ", dirs)
+        print("files ", files)
+        for file in files:
+            #获取文件所属目录
+            print("file:",file)
+            #获取文件路径
+            finname = os.path.join(root,file)
+            (filename,extension) = os.path.splitext(file)
+            getearntimes(in_path, file)
 
 def csvtojpg(stock_path="D:/works/hands-on/csv", filename="stock.csv", jpg_path="jpg", jpgfilename="stock.jpg"):
     print("csvtojpg start")
@@ -119,9 +234,9 @@ def tocsv(in_path="export", out_path="csv"):
 
 
 
-def getdict():
+def getdict(stockinfofile="stock-totalprice.txt"):
     global dict 
-    f = open("stock-totalprice.txt", "r")
+    f = open(stocksinfo+stockinfofile, "r")
     lines = f.readlines()
     for l in lines:
         key, value = l.split(",")
@@ -130,10 +245,10 @@ def getdict():
         print("value",value)
         dict[key] = float(value)
 
-def dosort():
+def dosort(outputfile="stock-totalprice-sorted.txt"):
     global dict
     d2 = sorted(dict.items(), key = lambda x:x[1], reverse=True)
-    f = open("stock-totalprice-sorted.txt", "w")
+    f = open(stocksinfo+outputfile, "w")
     for key in d2:
         istr = ""
         for x in key:
@@ -141,9 +256,9 @@ def dosort():
         istr = istr + "\n"
         f.write(istr) 
 
-def getsortedjpg():
-    filedir = "pickstock"
-    f = open("stock-totalprice-sorted.txt", "r")
+def getsortedjpg(sortedfile="stock-totalprice-sorted.txt", filedir = "pickstock"):
+    os.makedirs(filedir)
+    f = open(stocksinfo+sortedfile, "r")
     lines = f.readlines()
     i = 0
     for l in lines:
@@ -155,13 +270,10 @@ def getsortedjpg():
         file = filename + ".jpg"
         csvtojpg("csv", filename + ".csv", "bestjpg", file)
         shutil.copy("bestjpg/" + file, filedir)
-        if ( i > 101):
+        if ( i > 30):
             break
 
-
-
-
-if __name__ == "__main__":
+def domaxtotalpick():
     print("you should have the following dirs")
     print("export, csv, bestjpg, pickstock")
     print("now we start")
@@ -169,7 +281,7 @@ if __name__ == "__main__":
     tocsv()
     print("convert done")
     print("get all stock's totalprice")
-    walkdir()
+    walkdir_gettotalprice()
     print("start sorted totalprice")
     getdict()
     dosort()
@@ -177,6 +289,58 @@ if __name__ == "__main__":
     print("convert the top 100 stock to jpg")
     getsortedjpg()
     print("now check pickstock dir")
-    
+
+def doearninfo():
+    print("get all stock's earn price")
+    walkdir_getearnprice()
+    print("start sorted earnprice")
+    getdict("earnprice.txt")
+    dosort("earnprice-sorted.txt")
+    print("sorted done")
+    print("convert the top 100 stock to jpg save in bestjpg dir, copy them in pickstock dir")
+    getsortedjpg("earnprice-sorted.txt", "pickearnprice")
+
+def doearntimes():
+    print("get all stock's earn times")
+    walkdir_getearntimes()
+    print("start sorted earntimes")
+    getdict("earntimes.txt")
+    dosort("earntimes-sorted.txt")
+    print("sorted done")
+    print("convert the top 100 stock to jpg save in bestjpg dir, copy them in pickstock dir")
+    getsortedjpg("earntimes-sorted.txt", "pickearntimes")
+
+def justsorted():
+    getdict("earnprice.txt")
+    dosort("earnprice-sorted.txt")
+    print("sorted done")
+    print("convert the top 100 stock to jpg save in bestjpg dir, copy them in pickstock dir")
+    getsortedjpg("earnprice-sorted.txt", "pickearnprice")
+
+def pickstock(in_path="csv", out_path="jpg"):
+    global stockfile
+    print("inside pickstock walkdir")
+    for root,dirs,files in os.walk(in_path):
+        print("inside ",in_path)
+        print("root ", root)
+        print("dirs ", dirs)
+        print("files ", files)
+        for file in files:
+            #获取文件所属目录
+            print("file:",file)
+            #获取文件路径
+            finname = os.path.join(root,file)
+            (filename,extension) = os.path.splitext(file)
+            foutname = os.path.join(out_path,filename+".jpg") 
+            print("outname:",foutname)
+            print("inname:",finname)
+            #gettotalprice(in_path, file, out_path, filename)
+    stockfile.close()
+
+if __name__ == "__main__":
+    #domaxtotalpick()
+    #doearninfo()
+    #justsorted()
+    doearntimes()
 
 
